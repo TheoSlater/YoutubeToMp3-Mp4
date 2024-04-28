@@ -5,6 +5,8 @@ from moviepy.editor import VideoFileClip
 import threading
 import os
 
+mp3_conversion_triggered = False  # Flag to track MP3 conversion
+
 def download_mp4():
     global url_entry, console_text
     url = url_entry.get()
@@ -25,7 +27,8 @@ def download_mp4():
         console_text.insert(tk.END, f'Error: {e}\n')
 
 def download_and_convert():
-    global url_entry, console_text
+    global url_entry, console_text, mp3_conversion_triggered
+    mp3_conversion_triggered = False  # Reset flag
     url = url_entry.get()
     output_path = '.'  # Set your desired output path
 
@@ -37,6 +40,7 @@ def download_and_convert():
             console_text.insert(tk.END, f'Downloading MP4: {yt.title}\n')
             mp4_file_path = mp4_stream.download(output_path)
             console_text.insert(tk.END, 'MP4 Download completed!\n')
+            mp3_conversion_triggered = True  # Set flag if MP3 conversion initiated
             threading.Thread(target=convert_to_mp3, args=(mp4_file_path,)).start()
         else:
             console_text.insert(tk.END, "MP4 stream not found.\n")
@@ -45,38 +49,42 @@ def download_and_convert():
         console_text.insert(tk.END, f'Error: {e}\n')
 
 def convert_to_mp3(video_file_path):
-    global console_text
+    global console_text, mp3_conversion_triggered
     try:
         video = VideoFileClip(video_file_path)
         audio = video.audio
-        audio.write_audiofile(video_file_path.replace('.mp4', '_converted.mp3'), codec='mp3', fps=44100)
+        mp3_file_path = video_file_path.replace('.mp4', '_converted.mp3')  # New file path for MP3
+        audio.write_audiofile(mp3_file_path, codec='mp3', fps=44100)
         video.close()
         console_text.insert(tk.END, 'Conversion to MP3 completed!\n')
 
-        # Delete the original MP4 file
-        os.remove(video_file_path)
-        console_text.insert(tk.END, 'Original MP4 file deleted.\n')
+        if mp3_conversion_triggered:
+            # Rename the downloaded MP4 file to MP3 file
+            os.rename(video_file_path, mp3_file_path)
+            console_text.insert(tk.END, 'MP4 file converted to MP3.\n')
 
     except Exception as e:
         console_text.insert(tk.END, f'Error converting to MP3: {e}\n')
+
 
 def main():
     global url_entry, console_text
     root = tk.Tk()
     root.title("YouTube Downloader")
+    root.configure(bg="#092327")  # Dark blue/purple background
 
     # Center the window
     root.geometry("800x300+400+200")
 
     # Set the weight of columns and rows to allow them to resize
     root.rowconfigure(0, weight=1)
-    root.rowconfigure(1, weight=0)
-    root.rowconfigure(2, weight=1)
-    root.columnconfigure(0, weight=0)
+    root.rowconfigure(1, weight=1)
+    root.columnconfigure(0, weight=1)
     root.columnconfigure(1, weight=1)
     root.columnconfigure(2, weight=1)
 
-    url_label = Label(root, text="Enter YouTube video URL:")
+    # Entry for URL
+    url_label = Label(root, text="Enter YouTube video URL:", bg="#092327", fg="white")
     url_label.grid(row=0, column=0, sticky="w", padx=10, pady=10)
 
     url_var = StringVar()
@@ -85,20 +93,18 @@ def main():
     url_entry.bind("<FocusIn>", lambda event: url_entry.delete("0", "end") if url_entry.get() == "Paste YouTube URL here" else None)
     url_entry.grid(row=0, column=1, padx=10, pady=10, sticky="ew")
 
-    button_frame = tk.Frame(root)
-    button_frame.grid(row=1, column=1, padx=10, pady=10, sticky="ew")
+    # Buttons
+    download_mp4_button = Button(root, text="Download MP4", command=download_mp4)
+    download_mp4_button.grid(row=1, column=0, padx=5, pady=5, sticky="ew")
 
-    download_mp4_button = Button(button_frame, text="Download MP4", command=download_mp4)
-    download_mp4_button.grid(row=0, column=0, padx=5)
-
-    download_and_convert_button = Button(button_frame, text="Download and Convert to MP3", command=download_and_convert)
-    download_and_convert_button.grid(row=0, column=1, padx=5)
+    download_and_convert_button = Button(root, text="Download and Convert to MP3", command=download_and_convert)
+    download_and_convert_button.grid(row=1, column=1, padx=5, pady=5, sticky="ew")
 
     # Console box
     console_frame = tk.Frame(root, bg="black")
-    console_frame.grid(row=0, column=2, rowspan=2, padx=10, pady=10, sticky="nsew")
+    console_frame.grid(row=2, column=0, columnspan=2, padx=10, pady=10, sticky="nsew")
 
-    console_text = Text(console_frame, bg="black", fg="white", wrap="word", height=15, width=30)
+    console_text = Text(console_frame, bg="black", fg="white", wrap="word", height=10, width=50)
     console_text.pack(side="left", fill="both", expand=True)
 
     # Add a scrollbar to the console
