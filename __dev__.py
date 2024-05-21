@@ -26,7 +26,6 @@ class ConsoleOutput:
 class ConsoleApp:
     def __init__(self, root):
         self.root = root
-        self.root.title("Command Console")
 
         self.text_area = ctk.CTkTextbox(root, height=100, width=400)
         self.text_area.grid(row=3, column=0, padx=10, pady=10, sticky="nsew")
@@ -115,11 +114,15 @@ def main():
     url_entry.bind("<FocusIn>", lambda event: url_entry.delete("0", "end") if url_entry.get() == "Paste YouTube URL here" else None)
     url_entry.grid(row=0, column=0, padx=10, pady=10, sticky="we")
 
-    download_mp4_button = ctk.CTkButton(root, text="Download MP4", command=lambda: download_mp4(url_entry))
-    download_mp4_button.grid(row=1, column=0, padx=5, pady=(0, 5), sticky="w")
+    # Create a frame to hold the buttons
+    button_frame = ctk.CTkFrame(root)
+    button_frame.grid(row=1, column=0, padx=10, pady=(0, 5), sticky="we")
 
-    download_and_convert_button = ctk.CTkButton(root, text="Download and Convert to MP3", command=lambda: download_and_convert(url_entry))
-    download_and_convert_button.grid(row=1, column=0, padx=(0, 5), pady=(0, 5), sticky="e")
+    download_mp4_button = ctk.CTkButton(button_frame, text="Download MP4", command=lambda: download_mp4(url_entry))
+    download_mp4_button.grid(row=0, column=0, padx=5, pady=(0, 5))
+
+    download_and_convert_button = ctk.CTkButton(button_frame, text="Download and Convert to MP3", command=lambda: download_and_convert(url_entry))
+    download_and_convert_button.grid(row=0, column=1, padx=5, pady=(0, 5))
 
     root.grid_rowconfigure(0, weight=0)  
     root.grid_rowconfigure(1, weight=0) 
