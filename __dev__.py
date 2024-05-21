@@ -10,9 +10,12 @@ import sys
 mp3_conversion_triggered = False
 ctk.set_appearance_mode("dark")
 
+
 class ConsoleOutput:
     def __init__(self, text_widget):
         self.text_widget = text_widget
+        self.default_color = "white"  # Default text color
+
 
     def write(self, message):
         self.text_widget.configure(state='normal')
@@ -22,6 +25,7 @@ class ConsoleOutput:
 
     def flush(self):
         pass
+
 
 class ConsoleApp:
     def __init__(self, root):
@@ -83,7 +87,9 @@ class ConsoleApp:
                     sys.stdout = self.original_stdout
                     sys.stderr = self.original_stderr
                     return "Console output disabled."
+                
             return "Usage: console output [on/off]"
+        
         else:
             return f"Unknown command: {command}"
 
