@@ -60,7 +60,7 @@ def convert_to_mp3(video_file_path):
 def main():
 
     root = ctk.CTk()
-    root.title("YouTube Downloader")
+    root.title("YouTube To Mp3")
 
     window_width = 345
     window_height = 90
