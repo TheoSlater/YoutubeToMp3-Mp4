@@ -7,7 +7,7 @@ import os
 import customtkinter as ctk
 import sys
 
-mp3_conversion_triggered = False  # Flag to track MP3 conversion
+mp3_conversion_triggered = False
 ctk.set_appearance_mode("dark")
 
 class ConsoleOutput:
@@ -35,7 +35,6 @@ class ConsoleApp:
         self.entry.grid(row=4, column=0, padx=10, pady=10, sticky="we")
         self.entry.bind('<Return>', self.process_command)
 
-        # Redirect stdout and stderr to the console text area initially
         self.console_output = ConsoleOutput(self.text_area)
         self.original_stdout = sys.stdout
         self.original_stderr = sys.stderr
@@ -84,7 +83,7 @@ class ConsoleApp:
                     sys.stdout = self.original_stdout
                     sys.stderr = self.original_stderr
                     return "Console output disabled."
-            return "Usage: console [on/off]"
+            return "Usage: console output [on/off]"
         else:
             return f"Unknown command: {command}"
 
@@ -153,7 +152,6 @@ def main():
     url_entry.bind("<FocusIn>", lambda event: url_entry.delete("0", "end") if url_entry.get() == "Paste YouTube URL here" else None)
     url_entry.grid(row=0, column=0, padx=10, pady=10, sticky="we")
 
-    # Create a frame to hold the buttons
     button_frame = ctk.CTkFrame(root)
     button_frame.grid(row=1, column=0, padx=10, pady=(0, 5), sticky="we")
 
@@ -167,10 +165,9 @@ def main():
     root.grid_rowconfigure(1, weight=0) 
     root.grid_columnconfigure(0, weight=1) 
 
-    # Adding the custom console app
     console_app = ConsoleApp(root)
-    root.grid_rowconfigure(3, weight=1)  # Enable the console text area to expand
-    root.grid_rowconfigure(4, weight=0)  # Allow the entry box to stay at a fixed height
+    root.grid_rowconfigure(3, weight=1)  
+    root.grid_rowconfigure(4, weight=0)  
 
     root.mainloop()
 
