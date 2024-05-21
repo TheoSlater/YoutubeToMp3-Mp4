@@ -1,3 +1,7 @@
+# Created by Theo Slater
+# This is open source. Please give me credit.
+
+# DEV
 import tkinter as tk
 from tkinter import StringVar, scrolledtext
 from pytube import YouTube
