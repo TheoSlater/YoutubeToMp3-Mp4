@@ -2,9 +2,9 @@
 
 - Created by Theo Slater.
 
-  This allows you to choose if you want to download an mp4 or an mp3 from a youtube link.
+  This allows you to choose if you want to download an mp4 or an mp3 from a YouTube link.
   You're welcome!
 
   May add MAC OS support in the future.
 
-pyinstaller **init**.py --onefile --name YTMP31.4
+pyinstaller __init__.py --onefile --name YTMP31.4
