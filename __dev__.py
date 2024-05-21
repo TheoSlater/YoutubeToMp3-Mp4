@@ -16,7 +16,7 @@ class ConsoleOutput:
 
     def write(self, message):
         self.text_widget.configure(state='normal')
-        self.text_widget.insert(tk.END, message + '\n')
+        self.text_widget.insert(tk.END, message)
         self.text_widget.configure(state='disabled')
         self.text_widget.yview(tk.END)
 
@@ -26,6 +26,7 @@ class ConsoleOutput:
 class ConsoleApp:
     def __init__(self, root):
         self.root = root
+        self.console_enabled = True
 
         self.text_area = ctk.CTkTextbox(root, height=100, width=400)
         self.text_area.grid(row=3, column=0, padx=10, pady=10, sticky="nsew")
@@ -34,19 +35,56 @@ class ConsoleApp:
         self.entry.grid(row=4, column=0, padx=10, pady=10, sticky="we")
         self.entry.bind('<Return>', self.process_command)
 
+        # Redirect stdout and stderr to the console text area initially
+        self.console_output = ConsoleOutput(self.text_area)
+        self.original_stdout = sys.stdout
+        self.original_stderr = sys.stderr
+        sys.stdout = self.console_output
+        sys.stderr = self.console_output
+
     def process_command(self, event):
         command = self.entry.get()
-        self.text_area.insert(ctk.END, f"> {command}\n")
-        self.entry.delete(0, ctk.END)
+        if command:
+            self.entry.delete(0, ctk.END)
+            self.display_command(command)
+            result = self.execute_command(command)
+            if result:
+                self.display_output(result)
 
-        # Here you can add your command processing logic
-        result = self.execute_command(command)
-        self.text_area.insert(ctk.END, f"{result}\n")
+    def display_command(self, command):
+        self.text_area.configure(state='normal')
+        self.text_area.insert(tk.END, f"> {command}\n")
+        self.text_area.configure(state='disabled')
+        self.text_area.yview(tk.END)
+
+    def display_output(self, output):
+        self.text_area.configure(state='normal')
+        self.text_area.insert(tk.END, f"{output}\n")
+        self.text_area.configure(state='disabled')
+        self.text_area.yview(tk.END)
 
     def execute_command(self, command):
-        # Dummy command processing (replace with actual logic)
-        if command == "hello":
+        parts = command.split()
+        if not parts:
+            return "No command entered."
+
+        cmd = parts[0].lower()
+
+        if cmd == "hello":
             return "Hello, World!"
+        elif cmd == "console":
+            if len(parts) > 1:
+                if parts[1].lower() == "on":
+                    self.console_enabled = True
+                    sys.stdout = self.console_output
+                    sys.stderr = self.console_output
+                    return "Console output enabled."
+                elif parts[1].lower() == "off":
+                    self.console_enabled = False
+                    sys.stdout = self.original_stdout
+                    sys.stderr = self.original_stderr
+                    return "Console output disabled."
+            return "Usage: console [on/off]"
         else:
             return f"Unknown command: {command}"
 
@@ -60,6 +98,7 @@ def download_mp4(url_entry):
 
         if mp4_stream:
             mp4_file_path = mp4_stream.download(output_path)
+            print(f"Downloaded MP4: {mp4_file_path}")
         else:
             print("Mp4 stream not found")
 
@@ -127,13 +166,6 @@ def main():
     root.grid_rowconfigure(0, weight=0)  
     root.grid_rowconfigure(1, weight=0) 
     root.grid_columnconfigure(0, weight=1) 
-
-    console_output = scrolledtext.ScrolledText(root, state='disabled', height=10, bg='#1C1C1C', fg='white')
-    console_output.grid(row=2, column=0, padx=10, pady=10, sticky="nsew")
-    root.grid_rowconfigure(2, weight=1) 
-
-    sys.stdout = ConsoleOutput(console_output)
-    sys.stderr = ConsoleOutput(console_output)
 
     # Adding the custom console app
     console_app = ConsoleApp(root)
