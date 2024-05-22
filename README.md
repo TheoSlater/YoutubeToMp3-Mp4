@@ -7,4 +7,4 @@
 
   May add MAC OS support in the future.
 
-pyinstaller __init__.py --onefile --name YTMP31.4
+pyinstaller __init__.py --onefile --name YTMP31.5
