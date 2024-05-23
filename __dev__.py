@@ -1,9 +1,5 @@
-# Created by Theo Slater
-# This is open source. Please give me credit.
-
-# DEV
 import tkinter as tk
-from tkinter import StringVar, scrolledtext
+from tkinter import StringVar
 from pytube import YouTube
 from moviepy.editor import VideoFileClip
 import threading
@@ -20,7 +16,6 @@ class ConsoleOutput:
         self.text_widget = text_widget
         self.default_color = "white"  # Default text color
 
-
     def write(self, message):
         self.text_widget.configure(state='normal')
         self.text_widget.insert(tk.END, message)
@@ -35,6 +30,8 @@ class ConsoleApp:
     def __init__(self, root):
         self.root = root
         self.console_enabled = True
+        self.command_history = []
+        self.history_index = -1
 
         self.text_area = ctk.CTkTextbox(root, height=100, width=400)
         self.text_area.grid(row=3, column=0, padx=10, pady=10, sticky="nsew")
@@ -42,6 +39,8 @@ class ConsoleApp:
         self.entry = ctk.CTkEntry(root, width=400)
         self.entry.grid(row=4, column=0, padx=10, pady=10, sticky="we")
         self.entry.bind('<Return>', self.process_command)
+        self.entry.bind('<Up>', self.show_previous_command)
+        self.entry.bind('<Down>', self.show_next_command)
 
         self.console_output = ConsoleOutput(self.text_area)
         self.original_stdout = sys.stdout
@@ -54,6 +53,8 @@ class ConsoleApp:
         if command:
             self.entry.delete(0, ctk.END)
             self.display_command(command)
+            self.command_history.append(command)
+            self.history_index = len(self.command_history)
             result = self.execute_command(command)
             if result:
                 self.display_output(result)
@@ -91,15 +92,29 @@ class ConsoleApp:
                     sys.stdout = self.original_stdout
                     sys.stderr = self.original_stderr
                     return "Console output disabled."
-                
             return "Usage: console output [on/off]"
-        
         else:
             return f"Unknown command: {command}"
 
+    def show_previous_command(self, event):
+        if self.command_history and self.history_index > 0:
+            self.history_index -= 1
+            self.entry.delete(0, tk.END)
+            self.entry.insert(0, self.command_history[self.history_index])
+
+    def show_next_command(self, event):
+        if self.command_history and self.history_index < len(self.command_history) - 1:
+            self.history_index += 1
+            self.entry.delete(0, tk.END)
+            self.entry.insert(0, self.command_history[self.history_index])
+        elif self.history_index == len(self.command_history) - 1:
+            self.history_index += 1
+            self.entry.delete(0, tk.END)
+
+
 def download_mp4(url_entry):
     url = url_entry.get()
-    output_path = '.' 
+    output_path = '.'
 
     try:
         yt = YouTube(url)
@@ -114,9 +129,11 @@ def download_mp4(url_entry):
     except Exception as e:
         print(f'Error Downloading mp4: {e}')
 
-def download_and_convert(url_entry):
+
+def download_and_convert(url_entry, format_var):
     url = url_entry.get()
-    output_path = '.' 
+    output_path = '.'
+    desired_format = format_var.get()
 
     try:
         yt = YouTube(url)
@@ -124,29 +141,34 @@ def download_and_convert(url_entry):
 
         if mp4_stream:
             mp4_file_path = mp4_stream.download(output_path)
-            threading.Thread(target=convert_to_mp3, args=(mp4_file_path,)).start()
+            threading.Thread(target=convert_to_audio, args=(mp4_file_path, desired_format)).start()
         else:
             print("MP4 stream not found.")
 
     except Exception as e:
         print(f'Error downloading MP4: {e}')
 
-def convert_to_mp3(video_file_path):
+
+def convert_to_audio(video_file_path, format):
     try:
         video = VideoFileClip(video_file_path)
         audio = video.audio
-        audio.write_audiofile(video_file_path.replace('.mp4', '_converted.mp3'), codec='mp3', fps=44100)
+        if format == 'MP3':
+            audio.write_audiofile(video_file_path.replace('.mp4', '_converted.mp3'), codec='mp3', fps=44100)
+        elif format == 'WAV':
+            audio.write_audiofile(video_file_path.replace('.mp4', '_converted.wav'), codec='pcm_s16le', fps=44100)
         video.close()
 
         os.remove(video_file_path)
-        print('Successfully downloaded and converted to MP3.')
+        print(f'Successfully downloaded and converted to {format}.')
 
     except Exception as e:
-        print(f'Error converting to MP3: {e}')
+        print(f'Error converting to {format}: {e}')
+
 
 def main():
     root = ctk.CTk()
-    root.title("YouTube To Mp3 (DEV)")
+    root.title("YouTube To Audio (DEV)")
 
     window_width = 600
     window_height = 600
@@ -162,24 +184,30 @@ def main():
     url_entry.bind("<FocusIn>", lambda event: url_entry.delete("0", "end") if url_entry.get() == "Paste YouTube URL here" else None)
     url_entry.grid(row=0, column=0, padx=10, pady=10, sticky="we")
 
+    format_var = StringVar(value="MP3")
+    format_menu = ctk.CTkOptionMenu(root, variable=format_var, values=["MP3", "WAV"])
+    format_menu.grid(row=1, column=0, padx=10, pady=(0, 10), sticky="we")
+
     button_frame = ctk.CTkFrame(root)
-    button_frame.grid(row=1, column=0, padx=10, pady=(0, 5), sticky="we")
+    button_frame.grid(row=2, column=0, padx=10, pady=(0, 5), sticky="we")
 
     download_mp4_button = ctk.CTkButton(button_frame, text="Download MP4", command=lambda: download_mp4(url_entry))
     download_mp4_button.grid(row=0, column=0, padx=5, pady=(0, 5))
 
-    download_and_convert_button = ctk.CTkButton(button_frame, text="Download and Convert to MP3", command=lambda: download_and_convert(url_entry))
+    download_and_convert_button = ctk.CTkButton(button_frame, text="Download and Convert to Audio", command=lambda: download_and_convert(url_entry, format_var))
     download_and_convert_button.grid(row=0, column=1, padx=5, pady=(0, 5))
 
-    root.grid_rowconfigure(0, weight=0)  
-    root.grid_rowconfigure(1, weight=0) 
-    root.grid_columnconfigure(0, weight=1) 
+    root.grid_rowconfigure(0, weight=0)
+    root.grid_rowconfigure(1, weight=0)
+    root.grid_rowconfigure(2, weight=0)
+    root.grid_columnconfigure(0, weight=1)
 
     console_app = ConsoleApp(root)
-    root.grid_rowconfigure(3, weight=1)  
-    root.grid_rowconfigure(4, weight=0)  
+    root.grid_rowconfigure(3, weight=1)
+    root.grid_rowconfigure(4, weight=0)
 
     root.mainloop()
+
 
 if __name__ == "__main__":
     main()
