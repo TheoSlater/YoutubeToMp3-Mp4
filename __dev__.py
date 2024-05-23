@@ -14,7 +14,6 @@ ctk.set_appearance_mode("dark")
 class ConsoleOutput:
     def __init__(self, text_widget):
         self.text_widget = text_widget
-        self.default_color = "white"  # Default text color
 
     def write(self, message):
         self.text_widget.configure(state='normal')
@@ -29,15 +28,17 @@ class ConsoleOutput:
 class ConsoleApp:
     def __init__(self, root):
         self.root = root
-        self.console_enabled = True
+        self.console_visible = False  # Set console visibility to False by default
         self.command_history = []
         self.history_index = -1
 
         self.text_area = ctk.CTkTextbox(root, height=100, width=400)
         self.text_area.grid(row=3, column=0, padx=10, pady=10, sticky="nsew")
+        self.text_area.grid_remove()  # Hide the text area initially
 
         self.entry = ctk.CTkEntry(root, width=400)
         self.entry.grid(row=4, column=0, padx=10, pady=10, sticky="we")
+        self.entry.grid_remove()  # Hide the entry field initially
         self.entry.bind('<Return>', self.process_command)
         self.entry.bind('<Up>', self.show_previous_command)
         self.entry.bind('<Down>', self.show_next_command)
@@ -83,12 +84,12 @@ class ConsoleApp:
         elif cmd == "console":
             if len(parts) > 1:
                 if parts[1].lower() == "on":
-                    self.console_enabled = True
+                    self.console_visible = True
                     sys.stdout = self.console_output
                     sys.stderr = self.console_output
                     return "Console output enabled."
                 elif parts[1].lower() == "off":
-                    self.console_enabled = False
+                    self.console_visible = False
                     sys.stdout = self.original_stdout
                     sys.stderr = self.original_stderr
                     return "Console output disabled."
@@ -166,12 +167,27 @@ def convert_to_audio(video_file_path, format):
         print(f'Error converting to {format}: {e}')
 
 
+def toggle_console_visibility(console_app, root):
+    if console_app.console_visible:
+        console_app.text_area.grid_remove()
+        console_app.entry.grid_remove()
+        root.geometry(f"{window_width}x{window_height}+{x_coordinate}+{y_coordinate}")
+    else:
+        console_app.text_area.grid()
+        console_app.entry.grid()
+        root.geometry(f"{window_width}x{expanded_window_height}+{x_coordinate}+{y_coordinate}")
+    console_app.console_visible = not console_app.console_visible
+
+
 def main():
+    global window_width, window_height, expanded_window_height, x_coordinate, y_coordinate
+
     root = ctk.CTk()
     root.title("YouTube To Audio (DEV)")
 
     window_width = 600
-    window_height = 600
+    window_height = 200
+    expanded_window_height = 600
     screen_width = root.winfo_screenwidth()
     screen_height = root.winfo_screenheight()
     x_coordinate = int((screen_width - window_width) / 2)
@@ -205,6 +221,8 @@ def main():
     console_app = ConsoleApp(root)
     root.grid_rowconfigure(3, weight=1)
     root.grid_rowconfigure(4, weight=0)
+
+    root.bind("`", lambda event: toggle_console_visibility(console_app, root))
 
     root.mainloop()
 
