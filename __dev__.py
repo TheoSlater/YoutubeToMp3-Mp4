@@ -153,7 +153,7 @@ def download_mp4(url):
     try:
         yt = YouTube(url)
         mp4_stream = yt.streams.filter(file_extension='mp4').first()
-        if mp4_stream:
+        if (mp4_stream):
             mp4_file_path = mp4_stream.download('.')
             print(f"Downloaded MP4: {mp4_file_path}")
         else:
@@ -165,7 +165,7 @@ def download_and_convert(url, desired_format):
     try:
         yt = YouTube(url)
         mp4_stream = yt.streams.filter(file_extension='mp4').first()
-        if mp4_stream:
+        if (mp4_stream):
             mp4_file_path = mp4_stream.download('.')
             threading.Thread(target=convert_to_audio, args=(mp4_file_path, desired_format)).start()
         else:
