@@ -1,14 +1,17 @@
+# Created by Theo Slater
+# This is an open source project. Do whatever you want with it.
+
+
 import tkinter as tk
 from tkinter import StringVar
-from pytube import YouTube
-from moviepy.editor import VideoFileClip
 import threading
 import os
 import customtkinter as ctk
 from customtkinter import CTkToplevel
 import sys
+import yt_dlp as ytdlp
+import subprocess
 
-mp3_conversion_triggered = False
 ctk.set_appearance_mode("dark")
 
 class ConsoleOutput:
@@ -147,43 +150,30 @@ class ConsoleApp:
         self.dev_console_text.insert(tk.END, ''.join(self.console_output.output_buffer))
         self.dev_console_text.configure(state='disabled')
         self.dev_console_text.yview(tk.END)
-        self.root.after(100, self.update_dev_console)  # Update every 100 milliseconds
+        self.root.after(100, self.update_dev_console)
 
-def download_mp4(url):
+def download_audio(url, format):
     try:
-        yt = YouTube(url)
-        mp4_stream = yt.streams.filter(file_extension='mp4').first()
-        if (mp4_stream):
-            mp4_file_path = mp4_stream.download('.')
-            print(f"Downloaded MP4: {mp4_file_path}")
-        else:
-            print("MP4 stream not found")
-    except Exception as e:
-        print(f'Error Downloading MP4: {e}')
+        file_ext = format.lower()
+        output_template = f"%(title)s.{file_ext}"
 
-def download_and_convert(url, desired_format):
-    try:
-        yt = YouTube(url)
-        mp4_stream = yt.streams.filter(file_extension='mp4').first()
-        if (mp4_stream):
-            mp4_file_path = mp4_stream.download('.')
-            threading.Thread(target=convert_to_audio, args=(mp4_file_path, desired_format)).start()
-        else:
-            print("MP4 stream not found.")
-    except Exception as e:
-        print(f'Error downloading MP4: {e}')
+        command = [
+            'python', '-m', 'yt_dlp', url,
+            '-x', '--audio-format', file_ext,
+            '--audio-quality', '0',
+            '--embed-metadata',
+            '-o', output_template
+        ]
 
-def convert_to_audio(video_file_path, format):
-    try:
-        video = VideoFileClip(video_file_path)
-        audio = video.audio
-        audio_file_path = video_file_path.replace('.mp4', f'_converted.{format.lower()}')
-        audio.write_audiofile(audio_file_path, codec='mp3' if format == 'MP3' else 'pcm_s16le', fps=44100)
-        video.close()
-        os.remove(video_file_path)
-        print(f'Successfully downloaded and converted to {format}.')
+        if file_ext in ['mp3', 'm4a', 'mkv', 'mp4', 'ogg', 'opus', 'flac', 'mka', 'm4v', 'mov']:
+            command.append('--embed-thumbnail')
+
+        subprocess.run(command, check=True)
+        print(f"Downloaded and converted audio: {output_template}")
+    except subprocess.CalledProcessError as e:
+        print(f'Error Downloading Audio: {e}')
     except Exception as e:
-        print(f'Error converting to {format}: {e}')
+        print(f'Error: {e}')
 
 def toggle_console_visibility(console_app, root):
     if console_app.console_visible:
@@ -200,7 +190,7 @@ def main():
     global window_width, window_height, expanded_window_height, x_coordinate, y_coordinate
 
     root = ctk.CTk()
-    root.title("YouTube To Audio (DEV)")
+    root.title("YouTube To Audio")
 
     window_width = 600
     window_height = 200
@@ -211,37 +201,40 @@ def main():
     y_coordinate = int((screen_height - window_height) / 2)
     root.geometry(f"{window_width}x{window_height}+{x_coordinate}+{y_coordinate}")
 
+    # Configure grid to make UI responsive
+    root.grid_columnconfigure(0, weight=1)  # Allows column 0 to expand
+    root.grid_rowconfigure(2, weight=0)     # Ensure row 2 (button) has proper height
+    root.grid_rowconfigure(3, weight=1)     # Allows row 3 (console) to expand
+
     url_var = StringVar()
     url_entry = ctk.CTkEntry(root, textvariable=url_var, width=400)
     url_entry.insert(0, "Paste YouTube URL here")
     url_entry.bind("<FocusIn>", lambda event: url_entry.delete("0", "end") if url_entry.get() == "Paste YouTube URL here" else None)
-    url_entry.grid(row=0, column=0, padx=10, pady=10, sticky="we")
+    url_entry.grid(row=0, column=0, padx=10, pady=10, sticky="we") 
 
-    format_var = StringVar(value="MP3")
-    format_menu = ctk.CTkOptionMenu(root, variable=format_var, values=["MP3", "WAV"])
-    format_menu.grid(row=1, column=0, padx=10, pady=(0, 10), sticky="we")
+    format_var = StringVar(value="mp3")
+    format_menu = ctk.CTkOptionMenu(root, variable=format_var, values=["mp3", "wav", "m4a"])
+    format_menu.grid(row=1, column=0, padx=10, pady=(0, 10), sticky="we")  #
 
-    button_frame = ctk.CTkFrame(root)
+    # Create frame for button and ensure it expands properly
+    button_frame = ctk.CTkFrame(root, fg_color=root.cget("bg"))  # Match frame color to root background
     button_frame.grid(row=2, column=0, padx=10, pady=(0, 5), sticky="we")
 
-    download_mp4_button = ctk.CTkButton(button_frame, text="Download MP4", command=lambda: download_mp4(url_var.get()))
-    download_mp4_button.grid(row=0, column=0, padx=5, pady=(0, 5))
+    download_audio_button = ctk.CTkButton(button_frame, text="Download and Convert Audio", command=lambda: threading.Thread(target=download_audio, args=(url_var.get(), format_var.get())).start())
+    download_audio_button.grid(row=0, column=0, padx=5, pady=(0, 5), sticky="we")  # Make button take full width
 
-    download_and_convert_button = ctk.CTkButton(button_frame, text="Download and Convert to Audio", command=lambda: download_and_convert(url_var.get(), format_var.get()))
-    download_and_convert_button.grid(row=0, column=1, padx=5, pady=(0, 5))
-
-    root.grid_rowconfigure(0, weight=0)
-    root.grid_rowconfigure(1, weight=0)
-    root.grid_rowconfigure(2, weight=0)
-    root.grid_columnconfigure(0, weight=1)
+    # Configure button_frame to ensure it does not collapse
+    button_frame.grid_columnconfigure(0, weight=1)
+    button_frame.grid_rowconfigure(0, weight=1)
 
     console_app = ConsoleApp(root)
     root.grid_rowconfigure(3, weight=1)
-    root.grid_rowconfigure(4, weight=0)
 
-    root.bind("`", lambda event: toggle_console_visibility(console_app, root))
+    root.bind("<Control-d>", lambda event: toggle_console_visibility(console_app, root))
 
     root.mainloop()
 
 if __name__ == "__main__":
     main()
+
+
