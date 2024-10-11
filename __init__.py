@@ -1,6 +1,5 @@
 # Created by Theo Slater
-# This is an open source project. Do whatever you want with it.
-
+# This is an open-source project. Do whatever you want with it.
 
 import tkinter as tk
 from tkinter import StringVar
@@ -45,23 +44,25 @@ class ConsoleApp:
         self.redirect_output()
 
     def setup_widgets(self):
-        self.text_area = ctk.CTkTextbox(self.root, height=100, width=400)
-        self.text_area.grid(row=3, column=0, padx=10, pady=10, sticky="nsew")
-        self.text_area.grid_remove()
+        """Set up the text console and input fields."""
+        self.text_area = ctk.CTkTextbox(self.root)
+        self.text_area.grid(row=1, column=0, padx=10, pady=10, sticky="nsew")  # Full width and height
 
-        self.entry = ctk.CTkEntry(self.root, width=400)
-        self.entry.grid(row=4, column=0, padx=10, pady=10, sticky="we")
-        self.entry.grid_remove()
+        self.entry = ctk.CTkEntry(self.root, placeholder_text="Enter command here...")
+        self.entry.grid(row=2, column=0, padx=10, pady=10, sticky="we")  # Full width
+
         self.entry.bind('<Return>', self.process_command)
         self.entry.bind('<Up>', self.show_previous_command)
         self.entry.bind('<Down>', self.show_next_command)
 
         self.console_output = ConsoleOutput(self.text_area)
 
+
+
     def redirect_output(self):
+        """Redirect console output to the custom text area."""
         self.original_stdout = sys.stdout
         self.original_stderr = sys.stderr
-        self.console_output = ConsoleOutput(self.text_area)
         sys.stdout = self.console_output
         sys.stderr = self.console_output
 
@@ -89,6 +90,7 @@ class ConsoleApp:
         self.text_area.yview(tk.END)
 
     def execute_command(self, command):
+        """Execute basic shell-like commands."""
         parts = command.split()
         if not parts:
             return "No command entered."
@@ -106,6 +108,7 @@ class ConsoleApp:
             return f"Unknown command: {command}"
 
     def toggle_console(self, parts):
+        """Enable or disable the console output based on user input."""
         if len(parts) > 1:
             if parts[1].lower() == "on":
                 self.console_visible = True
@@ -117,15 +120,17 @@ class ConsoleApp:
                 sys.stdout = self.original_stdout
                 sys.stderr = self.original_stderr
                 return "Console output disabled."
-        return "Usage: console output [on/off]"
+        return "Usage: console [on/off]"
 
     def show_previous_command(self, event):
+        """Handle browsing through command history."""
         if self.command_history and self.history_index > 0:
             self.history_index -= 1
             self.entry.delete(0, tk.END)
             self.entry.insert(0, self.command_history[self.history_index])
 
     def show_next_command(self, event):
+        """Handle forward navigation through command history."""
         if self.command_history and self.history_index < len(self.command_history) - 1:
             self.history_index += 1
             self.entry.delete(0, tk.END)
@@ -135,6 +140,7 @@ class ConsoleApp:
             self.entry.delete(0, tk.END)
 
     def open_dev_console(self):
+        """Open a new developer console window."""
         dev_console_window = CTkToplevel(self.root)
         dev_console_window.title("Developer Console")
         dev_console_window.geometry("600x400")
@@ -153,29 +159,33 @@ class ConsoleApp:
         self.root.after(100, self.update_dev_console)
 
 def download_audio(url, format):
+    """Download audio or video from YouTube using yt-dlp."""
     try:
         file_ext = format.lower()
         output_template = f"%(title)s.{file_ext}"
 
-        command = [
-            'python', '-m', 'yt_dlp', url,
-            '-x', '--audio-format', file_ext,
-            '--audio-quality', '0',
-            '--embed-metadata',
-            '-o', output_template
-        ]
+        command = ['python', '-m', 'yt_dlp', url]
 
-        if file_ext in ['mp3', 'm4a', 'mkv', 'mp4', 'ogg', 'opus', 'flac', 'mka', 'm4v', 'mov']:
-            command.append('--embed-thumbnail')
+        if file_ext == "mp4":
+            # Download video in mp4 format only
+            command += ['-f', 'bestvideo[ext=mp4]+bestaudio[ext=mp4]/mp4', '-o', output_template]
+        else:
+            # Download audio
+            command += ['-x', '--audio-format', file_ext, '--audio-quality', '0', '--embed-metadata', '-o', output_template]
+
+            if file_ext in ['mp3', 'wav', 'mkv', 'ogg', 'opus', 'flac', 'mka', 'm4v', 'mov']:
+                command.append('--embed-thumbnail')
 
         subprocess.run(command, check=True)
-        print(f"Downloaded and converted audio: {output_template}")
+        print(f"Downloaded and converted to {file_ext}: {output_template}")
     except subprocess.CalledProcessError as e:
-        print(f'Error Downloading Audio: {e}')
+        print(f'Error Downloading: {e}')
     except Exception as e:
         print(f'Error: {e}')
 
+
 def toggle_console_visibility(console_app, root):
+    """Toggle visibility of the console area."""
     if console_app.console_visible:
         console_app.text_area.grid_remove()
         console_app.entry.grid_remove()
@@ -186,6 +196,7 @@ def toggle_console_visibility(console_app, root):
         root.geometry(f"{window_width}x{expanded_window_height}+{x_coordinate}+{y_coordinate}")
     console_app.console_visible = not console_app.console_visible
 
+
 def main():
     global window_width, window_height, expanded_window_height, x_coordinate, y_coordinate
 
@@ -193,7 +204,7 @@ def main():
     root.title("YouTube To Audio")
 
     window_width = 600
-    window_height = 200
+    window_height = 50
     expanded_window_height = 600
     screen_width = root.winfo_screenwidth()
     screen_height = root.winfo_screenheight()
@@ -201,40 +212,38 @@ def main():
     y_coordinate = int((screen_height - window_height) / 2)
     root.geometry(f"{window_width}x{window_height}+{x_coordinate}+{y_coordinate}")
 
-    # Configure grid to make UI responsive
-    root.grid_columnconfigure(0, weight=1)  # Allows column 0 to expand
-    root.grid_rowconfigure(2, weight=0)     # Ensure row 2 (button) has proper height
-    root.grid_rowconfigure(3, weight=1)     # Allows row 3 (console) to expand
+    # Disable window resizing
+    root.resizable(False, False)
 
+    # Set column and row configurations to ensure full window expansion
+    root.grid_columnconfigure(0, weight=1)  # Make column fill width
+    root.grid_rowconfigure(1, weight=1)     # Make console area fill height
+    root.grid_rowconfigure(2, weight=0)     # Fixed row for input
+
+    # Create URL entry field
     url_var = StringVar()
-    url_entry = ctk.CTkEntry(root, textvariable=url_var, width=400)
-    url_entry.insert(0, "Paste YouTube URL here")
-    url_entry.bind("<FocusIn>", lambda event: url_entry.delete("0", "end") if url_entry.get() == "Paste YouTube URL here" else None)
-    url_entry.grid(row=0, column=0, padx=10, pady=10, sticky="we") 
+    url_entry = ctk.CTkEntry(root, textvariable=url_var, placeholder_text="Paste YouTube URL here")
+    url_entry.grid(row=0, column=0, padx=10, pady=10, sticky="we")  # Full width
 
-    format_var = StringVar(value="mp3")
-    format_menu = ctk.CTkOptionMenu(root, variable=format_var, values=["mp3", "wav", "m4a"])
-    format_menu.grid(row=1, column=0, padx=10, pady=(0, 10), sticky="we")  #
+    # Create format selection dropdown
+    format_var = StringVar(value="mp3")  # Default value set to mp3
+    format_menu = ctk.CTkOptionMenu(root, variable=format_var, values=["mp3", "wav", "mp4"])  # Added "mp4" here
+    format_menu.grid(row=0, column=1, padx=10, pady=10, sticky="we")  # Full width
 
-    # Create frame for button and ensure it expands properly
-    button_frame = ctk.CTkFrame(root, fg_color=root.cget("bg"))  # Match frame color to root background
-    button_frame.grid(row=2, column=0, padx=10, pady=(0, 5), sticky="we")
+    # Create download button
+    download_audio_button = ctk.CTkButton(root, text="Download", 
+                                          command=lambda: threading.Thread(target=download_audio, args=(url_var.get(), format_var.get())).start())
+    download_audio_button.grid(row=0, column=2, padx=10, pady=10, sticky="we")  # Full width
 
-    download_audio_button = ctk.CTkButton(button_frame, text="Download and Convert Audio", command=lambda: threading.Thread(target=download_audio, args=(url_var.get(), format_var.get())).start())
-    download_audio_button.grid(row=0, column=0, padx=5, pady=(0, 5), sticky="we")  # Make button take full width
-
-    # Configure button_frame to ensure it does not collapse
-    button_frame.grid_columnconfigure(0, weight=1)
-    button_frame.grid_rowconfigure(0, weight=1)
-
+    # Create console app
     console_app = ConsoleApp(root)
-    root.grid_rowconfigure(3, weight=1)
 
-    root.bind("<Control-d>", lambda event: toggle_console_visibility(console_app, root))
+    # Bind Ctrl+D to toggle the console
+    root.bind('<Control-d>', lambda event: toggle_console_visibility(console_app, root))
 
     root.mainloop()
 
+
+
 if __name__ == "__main__":
     main()
-
-
